@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>手绘板 - 初代iPhone风格</title>
+    <title>手绘板 v3 - iPhone风格</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            -webkit-user-select: none;
         }
 
         body {
@@ -19,12 +19,15 @@
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
             overflow: hidden;
             height: 100vh;
+            height: 100dvh;
             width: 100vw;
             display: flex;
             flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        /* 顶部状态栏 - 初代iPhone风格 */
+        /* ========== 顶部状态栏 ========== */
         .header {
             background: linear-gradient(to bottom, #4a4a4a, #2a2a2a);
             color: #fff;
@@ -37,64 +40,286 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
             flex-shrink: 0;
+            z-index: 10;
         }
 
-        /* 手绘区域 */
-        .canvas-container {
+        /* ========== 页面滑动容器 ========== */
+        .page-wrapper {
             flex: 1;
-            background: #000;
             position: relative;
             overflow: hidden;
+            background: #000;
+        }
+
+        .page-track {
+            display: flex;
+            width: 200%;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.25, 1.4, 0.5, 1);
+        }
+
+        .page-track.snapping {
+            transition: transform 0.5s cubic-bezier(0.25, 1.4, 0.5, 1);
+        }
+
+        .page-track.dragging {
+            transition: none;
+        }
+
+        /* 左页：绘画面板 */
+        .page-draw {
+            width: 50%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
         canvas {
             display: block;
-            background: #000;
+            width: 100%;
+            height: 100%;
             cursor: crosshair;
             touch-action: none;
         }
 
-        /* 底部按钮区域 */
-        .button-container {
-            background: linear-gradient(to bottom, #3a3a3a, #1a1a1a);
-            padding: 16px 20px;
-            border-top: 2px solid #000;
-            box-shadow: 0 -2px 4px rgba(0,0,0,0.5);
+        /* 像素风提示文字 overlay */
+        .pixel-prompt {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            line-height: 2.2;
+            color: #66ff66;
+            text-shadow: 0 0 8px rgba(102, 255, 102, 0.4);
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.3s ease;
+        }
+
+        .pixel-prompt .line2 {
+            font-size: 8px;
+            margin-top: 6px;
+            color: #44cc44;
+        }
+
+        .pixel-prompt .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 12px;
+            background: #66ff66;
+            vertical-align: middle;
+            margin-left: 4px;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .pixel-prompt.hidden {
+            opacity: 0;
+        }
+
+        /* 右页：代码面板 */
+        .page-code {
+            width: 50%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
             flex-shrink: 0;
         }
 
-        /* 初代iPhone立体按钮 */
-        .iphone-button {
+        .code-prompt {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            color: #66ff66;
+            padding: 10px 12px;
+            background: #0a0a0a;
+            border-bottom: 1px solid #2a2a2a;
+            text-shadow: 0 0 6px rgba(102, 255, 102, 0.3);
+            flex-shrink: 0;
+            line-height: 2;
+            transition: opacity 0.3s ease;
+        }
+
+        .code-prompt .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 12px;
+            background: #66ff66;
+            vertical-align: middle;
+            margin-left: 4px;
+            animation: blink 1s step-end infinite;
+        }
+
+        .code-prompt.hidden {
+            opacity: 0;
+            height: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        textarea {
+            flex: 1;
+            background: #0a0a0a;
+            color: #66ff66;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            font-size: 8px;
+            line-height: 1.6;
+            padding: 10px;
+            border: none;
+            outline: none;
+            resize: none;
+            word-break: break-all;
+            white-space: pre-wrap;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        textarea::placeholder {
+            color: #2a5a2a;
+        }
+
+        textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        textarea::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        textarea::-webkit-scrollbar-thumb {
+            background: #2a4a2a;
+            border-radius: 3px;
+        }
+
+        /* ========== 滑动切换器 ========== */
+        .slider-container {
+            background: linear-gradient(to bottom, #3a3a3a, #1a1a1a);
+            padding: 10px 24px 12px;
+            border-top: 2px solid #000;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 6px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-labels .active {
+            color: #fff;
+            text-shadow: 0 0 6px rgba(255,255,255,0.3);
+        }
+
+        .slider-track {
             width: 100%;
-            padding: 14px 20px;
-            font-size: 16px;
+            height: 32px;
+            background: #111;
+            border: 2px solid #000;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .slider-fill {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: calc(50% - 2px);
+            height: calc(100% - 4px);
+            background: linear-gradient(to bottom, #5a5a5a, #3a3a3a);
+            border-radius: 14px;
+            transition: transform 0.3s cubic-bezier(0.25, 1.6, 0.5, 1);
+            box-shadow:
+                0 2px 6px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.2),
+                inset 0 -1px 0 rgba(0,0,0,0.4);
+        }
+
+        .slider-fill.dragging {
+            transition: none;
+        }
+
+        .slider-fill::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            right: 4px;
+            height: 40%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.15), transparent);
+            border-radius: 12px 12px 0 0;
+            pointer-events: none;
+        }
+
+        .slider-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+            font-size: 9px;
+            color: #888;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* ========== 底部按钮行 ========== */
+        .button-row {
+            background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+            padding: 10px 20px 14px;
+            border-top: 2px solid #000;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 14px;
             font-weight: 600;
             letter-spacing: 1px;
             color: #fff;
             background: linear-gradient(to bottom, #5a5a5a, #3a3a3a);
             border: 2px solid #000;
-            border-radius: 12px;
+            border-radius: 10px;
             box-shadow:
-                0 4px 8px rgba(0,0,0,0.6),
+                0 3px 6px rgba(0,0,0,0.6),
                 inset 0 1px 0 rgba(255,255,255,0.2),
                 inset 0 -1px 0 rgba(0,0,0,0.4);
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
             cursor: pointer;
-            transition: all 0.1s ease;
+            transition: all 0.15s ease;
             position: relative;
             overflow: hidden;
         }
 
-        .iphone-button:active {
+        .action-btn:active {
             background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
             box-shadow:
-                0 2px 4px rgba(0,0,0,0.6),
+                0 1px 3px rgba(0,0,0,0.6),
                 inset 0 1px 0 rgba(255,255,255,0.1),
                 inset 0 -1px 0 rgba(0,0,0,0.6);
             transform: translateY(2px);
         }
 
-        .iphone-button::before {
+        .action-btn::before {
             content: '';
             position: absolute;
             top: 0;
@@ -102,62 +327,51 @@
             right: 0;
             height: 50%;
             background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
-            border-radius: 10px 10px 0 0;
+            border-radius: 8px 8px 0 0;
             pointer-events: none;
         }
 
-        /* 文本显示区域 */
-        .text-display {
-            display: none;
-            flex: 1;
-            background: #000;
-            color: #fff;
-            font-family: "Courier New", monospace;
-            font-size: 10px;
-            line-height: 1.2;
-            padding: 10px;
-            overflow: auto;
-            word-break: break-all;
-            white-space: pre-wrap;
+        .action-btn.feedback {
+            color: #66ff66;
+            text-shadow: 0 0 6px rgba(102, 255, 102, 0.4);
         }
 
-        /* 滚动条样式 */
-        .text-display::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .text-display::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-
-        .text-display::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
-            border-radius: 3px;
-        }
-
-        /* 模式指示器 */
-        .mode-indicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: #fff;
-            padding: 20px 40px;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        /* ========== Emoji 弹出 ========== */
+        .emoji-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: none;
             opacity: 0;
-            pointer-events: none;
             transition: opacity 0.3s ease;
-            border: 2px solid #4a4a4a;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
         }
 
-        .mode-indicator.show {
+        .emoji-overlay.show {
             opacity: 1;
+        }
+
+        .emoji-overlay .emoji {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 48px;
+            color: #66ff66;
+            text-shadow: 0 0 20px rgba(102, 255, 102, 0.6);
+            transform: scale(0.3);
+            transition: transform 0.4s cubic-bezier(0.25, 1.5, 0.5, 1), opacity 0.5s ease;
+        }
+
+        .emoji-overlay.show .emoji {
+            transform: scale(1);
+        }
+
+        .emoji-overlay.fadeout .emoji {
+            transform: scale(1.5);
+            opacity: 0;
         }
     </style>
 </head>
@@ -166,157 +380,504 @@
         <span id="statusText">手绘模式</span>
     </div>
 
-    <div class="canvas-container" id="canvasContainer">
-        <canvas id="drawingCanvas"></canvas>
-        <div class="mode-indicator" id="modeIndicator">转换中...</div>
+    <div class="page-wrapper" id="pageWrapper">
+        <div class="page-track" id="pageTrack">
+            <!-- 左页：绘画 -->
+            <div class="page-draw" id="pageDraw">
+                <div class="pixel-prompt" id="pixelPrompt">
+                    请触屏绘制图像<br>
+                    <span class="line2">请向右拨动按钮，以查看、长按复制或粘贴、输入文本<span class="cursor"></span></span>
+                </div>
+                <canvas id="drawingCanvas"></canvas>
+            </div>
+            <!-- 右页：代码 -->
+            <div class="page-code" id="pageCode">
+                <div class="code-prompt" id="codePrompt">
+                    请粘贴或输入文本<span class="cursor"></span>
+                </div>
+                <textarea id="textArea" placeholder="在此输入或粘贴 Base64 数据..."></textarea>
+            </div>
+        </div>
     </div>
 
-    <div class="text-display" id="textDisplay"></div>
+    <div class="slider-container" id="sliderContainer">
+        <div class="slider-labels">
+            <span id="labelDraw" class="active">绘画</span>
+            <span id="labelCode">代码</span>
+        </div>
+        <div class="slider-track" id="sliderTrack">
+            <div class="slider-fill" id="sliderFill"></div>
+            <div class="slider-text">滑动切换</div>
+        </div>
+    </div>
 
-    <div class="button-container">
-        <button class="iphone-button" id="toggleButton">转换为文本</button>
+    <div class="button-row">
+        <button class="action-btn" id="btnClear">清空</button>
+        <button class="action-btn" id="btnSave">保存</button>
+    </div>
+
+    <!-- Emoji弹出层 -->
+    <div class="emoji-overlay" id="emojiOverlay">
+        <span class="emoji" id="emojiText"></span>
     </div>
 
     <script>
-        const canvas = document.getElementById('drawingCanvas');
-        const ctx = canvas.getContext('2d');
-        const toggleButton = document.getElementById('toggleButton');
-        const textDisplay = document.getElementById('textDisplay');
-        const canvasContainer = document.getElementById('canvasContainer');
-        const modeIndicator = document.getElementById('modeIndicator');
-        const statusText = document.getElementById('statusText');
+    (function() {
+        // ========== DOM 元素 ==========
+        var canvas = document.getElementById('drawingCanvas');
+        var ctx = canvas.getContext('2d');
+        var pageTrack = document.getElementById('pageTrack');
+        var pageWrapper = document.getElementById('pageWrapper');
+        var textArea = document.getElementById('textArea');
+        var statusText = document.getElementById('statusText');
+        var pixelPrompt = document.getElementById('pixelPrompt');
+        var codePrompt = document.getElementById('codePrompt');
+        var labelDraw = document.getElementById('labelDraw');
+        var labelCode = document.getElementById('labelCode');
+        var sliderTrack = document.getElementById('sliderTrack');
+        var sliderFill = document.getElementById('sliderFill');
+        var emojiOverlay = document.getElementById('emojiOverlay');
+        var emojiTextEl = document.getElementById('emojiText');
+        var btnClear = document.getElementById('btnClear');
+        var btnSave = document.getElementById('btnSave');
 
-        let isDrawing = false;
-        let isTextMode = false;
-        let lastX = 0;
-        let lastY = 0;
-        let base64Data = '';
+        // ========== 状态 ==========
+        var currentPage = 0; // 0=绘画, 1=代码
+        var isDrawing = false;
+        var hasDrawn = false;
+        var rawData = ''; // 原始完整Base64，用于复制
+        var isSliderDragging = false;
+        var codeStreamTimer = null;
+        var CURSOR_CHAR = '\u2588'; // █
 
-        // 初始化Canvas
+        // ========== 初始化Canvas ==========
         function resizeCanvas() {
-            const container = canvasContainer;
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-
-            // 设置绘制属性
+            var container = canvas.parentElement;
+            var w = container.clientWidth;
+            var h = container.clientHeight;
+            var imgData = null;
+            if (canvas.width > 0 && canvas.height > 0) {
+                try { imgData = ctx.getImageData(0, 0, canvas.width, canvas.height); } catch(e) {}
+            }
+            canvas.width = w;
+            canvas.height = h;
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
+            if (imgData) {
+                try { ctx.putImageData(imgData, 0, 0); } catch(e) {}
+            }
         }
 
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // 绘制功能
-        function startDrawing(e) {
-            if (isTextMode) return;
+        // ========== 绘画功能 ==========
+        function startDraw(e) {
+            if (currentPage !== 0) return;
             isDrawing = true;
-            const pos = getPosition(e);
-            lastX = pos.x;
-            lastY = pos.y;
+            if (!hasDrawn) {
+                hasDrawn = true;
+                pixelPrompt.classList.add('hidden');
+            }
+            var pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
             e.preventDefault();
         }
 
-        function draw(e) {
-            if (!isDrawing || isTextMode) return;
-            const pos = getPosition(e);
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
+        function drawing(e) {
+            if (!isDrawing || currentPage !== 0) return;
+            var pos = getPos(e);
             ctx.lineTo(pos.x, pos.y);
             ctx.stroke();
-            lastX = pos.x;
-            lastY = pos.y;
             e.preventDefault();
         }
 
-        function stopDrawing() {
-            isDrawing = false;
+        function stopDraw() {
+            if (isDrawing) {
+                isDrawing = false;
+                ctx.beginPath();
+            }
         }
 
-        function getPosition(e) {
-            const rect = canvas.getBoundingClientRect();
-            const touch = e.touches ? e.touches[0] : e;
+        function getPos(e) {
+            var rect = canvas.getBoundingClientRect();
+            var scaleX = canvas.width / rect.width;
+            var scaleY = canvas.height / rect.height;
+            var t = e.touches ? e.touches[0] : e;
             return {
-                x: (touch.clientX || touch.pageX) - rect.left,
-                y: (touch.clientY || touch.pageY) - rect.top
+                x: (t.clientX - rect.left) * scaleX,
+                y: (t.clientY - rect.top) * scaleY
             };
         }
 
-        // 鼠标事件
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', drawing);
+        canvas.addEventListener('mouseup', stopDraw);
+        canvas.addEventListener('mouseleave', stopDraw);
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', drawing, { passive: false });
+        canvas.addEventListener('touchend', stopDraw);
 
-        // 触摸事件
-        canvas.addEventListener('touchstart', startDrawing, { passive: false });
-        canvas.addEventListener('touchmove', draw, { passive: false });
-        canvas.addEventListener('touchend', stopDrawing);
-
-        // 切换模式
-        toggleButton.addEventListener('click', function() {
-            if (!isTextMode) {
-                // 切换到文本模式
-                showIndicator('正在转换...');
-                setTimeout(() => {
-                    base64Data = canvas.toDataURL('image/png');
-                    canvasContainer.style.display = 'none';
-                    textDisplay.style.display = 'block';
-                    textDisplay.textContent = base64Data;
-                    isTextMode = true;
-                    toggleButton.textContent = '返回手绘';
-                    statusText.textContent = '文本模式';
-                    hideIndicator();
-                }, 300);
-            } else {
-                // 切换回手绘模式
-                showIndicator('正在恢复...');
-                setTimeout(() => {
-                    canvasContainer.style.display = 'block';
-                    textDisplay.style.display = 'none';
-                    isTextMode = false;
-                    toggleButton.textContent = '转换为文本';
-                    statusText.textContent = '手绘模式';
-                    hideIndicator();
-                }, 300);
-            }
-        });
-
-        // 指示器动画
-        function showIndicator(text) {
-            modeIndicator.textContent = text;
-            modeIndicator.classList.add('show');
-        }
-
-        function hideIndicator() {
-            modeIndicator.classList.remove('show');
-        }
-
-        // 防止页面滚动
-        document.addEventListener('touchmove', function(e) {
-            if (isTextMode) return;
-            e.preventDefault();
-        }, { passive: false });
-
-        // 清除画布功能（双击清除）
-        let tapCount = 0;
-        let tapTimer = null;
-
-        canvas.addEventListener('touchend', function() {
+        // 双击清除
+        var tapCount = 0;
+        var tapTimer = null;
+        canvas.addEventListener('touchend', function(e) {
             tapCount++;
             if (tapCount === 1) {
-                tapTimer = setTimeout(() => {
-                    tapCount = 0;
-                }, 300);
+                tapTimer = setTimeout(function() { tapCount = 0; }, 300);
             } else if (tapCount === 2) {
                 clearTimeout(tapTimer);
                 tapCount = 0;
-                if (!isTextMode) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (currentPage === 0) {
+                    doClear();
                 }
             }
         });
+
+        // ========== textarea光标管理 ==========
+        function appendCursor() {
+            var val = textArea.value;
+            if (val.length === 0) return;
+            if (val.charAt(val.length - 1) !== CURSOR_CHAR) {
+                textArea.value = val + CURSOR_CHAR;
+            }
+        }
+
+        function removeCursor() {
+            var val = textArea.value;
+            if (val.length > 0 && val.charAt(val.length - 1) === CURSOR_CHAR) {
+                textArea.value = val.substring(0, val.length - 1);
+            }
+        }
+
+        textArea.addEventListener('focus', function() {
+            removeCursor();
+        });
+
+        textArea.addEventListener('blur', function() {
+            // 延迟一点，等粘贴操作完成
+            setTimeout(function() {
+                if (!isUserEditing) {
+                    appendCursor();
+                }
+            }, 200);
+        });
+
+        var isUserEditing = false;
+        textArea.addEventListener('input', function() {
+            isUserEditing = true;
+        });
+
+        textArea.addEventListener('blur', function() {
+            setTimeout(function() {
+                isUserEditing = false;
+            }, 500);
+        });
+
+        // ========== 页面切换 ==========
+        function setPage(page, animated) {
+            if (animated !== false) {
+                pageTrack.classList.remove('dragging');
+                pageTrack.classList.add('snapping');
+            } else {
+                pageTrack.classList.add('dragging');
+                pageTrack.classList.remove('snapping');
+            }
+            currentPage = page;
+            pageTrack.style.transform = 'translateX(' + (-page * 50) + '%)';
+
+            if (page === 0) {
+                statusText.textContent = '手绘模式';
+                labelDraw.classList.add('active');
+                labelCode.classList.remove('active');
+                sliderFill.style.transform = 'translateX(0)';
+            } else {
+                statusText.textContent = '代码模式';
+                labelDraw.classList.remove('active');
+                labelCode.classList.add('active');
+                sliderFill.style.transform = 'translateX(100%)';
+            }
+        }
+
+        // ========== 滑动切换器 ==========
+        function getSliderPct(clientX) {
+            var rect = sliderTrack.getBoundingClientRect();
+            return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        }
+
+        function onSliderStart(e) {
+            isSliderDragging = true;
+            sliderFill.classList.add('dragging');
+            pageTrack.classList.add('dragging');
+            pageTrack.classList.remove('snapping');
+            e.preventDefault();
+        }
+
+        function onSliderMove(e) {
+            if (!isSliderDragging) return;
+            var t = e.touches ? e.touches[0] : e;
+            var pct = getSliderPct(t.clientX);
+            sliderFill.style.transform = 'translateX(' + (pct * 100) + '%)';
+            pageTrack.style.transform = 'translateX(' + (-pct * 50) + '%)';
+            e.preventDefault();
+        }
+
+        function onSliderEnd(e) {
+            if (!isSliderDragging) return;
+            isSliderDragging = false;
+            sliderFill.classList.remove('dragging');
+            var t = e.changedTouches ? e.changedTouches[0] : e;
+            var pct = getSliderPct(t.clientX);
+            var targetPage = pct >= 0.4 ? 1 : 0;
+
+            if (targetPage === 1 && currentPage === 0) {
+                generateAndStreamCode();
+            } else if (targetPage === 0 && currentPage === 1) {
+                restoreFromCode();
+            } else {
+                setPage(targetPage);
+            }
+        }
+
+        sliderTrack.addEventListener('mousedown', onSliderStart);
+        sliderTrack.addEventListener('touchstart', onSliderStart, { passive: false });
+        document.addEventListener('mousemove', onSliderMove);
+        document.addEventListener('touchmove', onSliderMove, { passive: false });
+        document.addEventListener('mouseup', onSliderEnd);
+        document.addEventListener('touchend', onSliderEnd);
+
+        // ========== 绘画→代码：Base64编码 + 逐行涌现 ==========
+        function generateAndStreamCode() {
+            rawData = canvas.toDataURL('image/jpeg', 0.6);
+            setPage(1);
+
+            if (codeStreamTimer) { clearInterval(codeStreamTimer); }
+
+            textArea.value = '';
+            codePrompt.classList.add('hidden');
+
+            var charsPerLine = 64;
+            var lines = [];
+            for (var i = 0; i < rawData.length; i += charsPerLine) {
+                lines.push(rawData.substring(i, i + charsPerLine));
+            }
+
+            var lineIdx = 0;
+            codeStreamTimer = setInterval(function() {
+                if (lineIdx >= lines.length) {
+                    clearInterval(codeStreamTimer);
+                    codeStreamTimer = null;
+                    // 涌完追加光标
+                    appendCursor();
+                    return;
+                }
+                textArea.value += lines[lineIdx] + '\n';
+                textArea.scrollTop = textArea.scrollHeight;
+                lineIdx++;
+            }, 20);
+        }
+
+        // ========== 代码→绘画：Base64解码还原 ==========
+        function restoreFromCode() {
+            var text = textArea.value.trim();
+            // 移除末尾的█光标
+            if (text.charAt(text.length - 1) === CURSOR_CHAR) {
+                text = text.substring(0, text.length - 1).trim();
+            }
+            // 去掉显示用的换行，还原为单行
+            text = text.replace(/\n/g, '');
+
+            if (text.indexOf('data:image') === 0) {
+                setPage(0);
+                var img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    var scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                    var w = img.width * scale;
+                    var h = img.height * scale;
+                    var x = (canvas.width - w) / 2;
+                    var y = (canvas.height - h) / 2;
+                    ctx.drawImage(img, x, y, w, h);
+                    hasDrawn = true;
+                    pixelPrompt.classList.add('hidden');
+                };
+                img.onerror = function() {
+                    showRandomEmoji();
+                    setPage(0);
+                };
+                img.src = text;
+            } else {
+                showRandomEmoji();
+                setPage(0);
+            }
+        }
+
+        // ========== Emoji弹出 ==========
+        var emojiPool = [':o', ':O', ':/', ':\\', ':p', ':D', ';)', 'o_O', 'O_o', '^_^', '>_<', 'xD', ':]', ':[', '._.', 'T_T', '^o^'];
+
+        function showRandomEmoji() {
+            var emoji = emojiPool[Math.floor(Math.random() * emojiPool.length)];
+            emojiTextEl.textContent = emoji;
+            emojiOverlay.classList.remove('fadeout');
+            emojiOverlay.classList.add('show');
+            setTimeout(function() {
+                emojiOverlay.classList.add('fadeout');
+            }, 1500);
+            setTimeout(function() {
+                emojiOverlay.classList.remove('show');
+                emojiOverlay.classList.remove('fadeout');
+            }, 2200);
+        }
+
+        // ========== 清空按钮 ==========
+        function doClear() {
+            if (currentPage === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                hasDrawn = false;
+                pixelPrompt.classList.remove('hidden');
+                rawData = '';
+            } else {
+                textArea.value = '';
+                rawData = '';
+                codePrompt.classList.remove('hidden');
+            }
+        }
+
+        btnClear.addEventListener('click', function() {
+            doClear();
+            // 按钮反馈
+            btnClear.textContent = '已清空';
+            btnClear.classList.add('feedback');
+            setTimeout(function() {
+                btnClear.textContent = '清空';
+                btnClear.classList.remove('feedback');
+            }, 1000);
+        });
+
+        // ========== 保存按钮 ==========
+        function showFeedback(btn, text) {
+            btn.textContent = text;
+            btn.classList.add('feedback');
+            setTimeout(function() {
+                btn.textContent = (btn === btnSave) ? '保存' : '清空';
+                btn.classList.remove('feedback');
+            }, 1500);
+        }
+
+        btnSave.addEventListener('click', function() {
+            if (currentPage === 0) {
+                // 保存图片
+                if (!hasDrawn) {
+                    showFeedback(btnSave, '画布为空');
+                    return;
+                }
+                var link = document.createElement('a');
+                link.download = 'drawing_' + Date.now() + '.png';
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showFeedback(btnSave, '已保存');
+            } else {
+                // 复制原始Base64到剪贴板
+                if (!rawData) {
+                    showFeedback(btnSave, '无内容');
+                    return;
+                }
+                // 如果用户编辑过textarea，用textarea的内容（去掉光标和换行）
+                var textToCopy = textArea.value.trim();
+                if (textToCopy.charAt(textToCopy.length - 1) === CURSOR_CHAR) {
+                    textToCopy = textToCopy.substring(0, textToCopy.length - 1);
+                }
+                textToCopy = textToCopy.replace(/\n/g, '');
+
+                if (!textToCopy) {
+                    showFeedback(btnSave, '无内容');
+                    return;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(textToCopy).then(function() {
+                        showFeedback(btnSave, '已复制');
+                    }).catch(function() {
+                        fallbackCopy(textToCopy);
+                    });
+                } else {
+                    fallbackCopy(textToCopy);
+                }
+            }
+        });
+
+        function fallbackCopy(text) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showFeedback(btnSave, '已复制');
+            } catch(e) {
+                showFeedback(btnSave, '复制失败');
+            }
+            document.body.removeChild(ta);
+        }
+
+        // ========== 页面区域左右滑动 ==========
+        var pageSwipeStartX = 0;
+        var pageSwipeActive = false;
+
+        pageWrapper.addEventListener('touchstart', function(e) {
+            if (e.target === textArea) return;
+            pageSwipeStartX = e.touches[0].clientX;
+            pageSwipeActive = true;
+            pageTrack.classList.add('dragging');
+            pageTrack.classList.remove('snapping');
+        }, { passive: true });
+
+        pageWrapper.addEventListener('touchmove', function(e) {
+            if (!pageSwipeActive || e.target === textArea) return;
+            var dx = e.touches[0].clientX - pageSwipeStartX;
+            var baseOffset = -currentPage * 50;
+            var pctOffset = (dx / pageWrapper.clientWidth) * 50;
+            var newVal = Math.max(-50, Math.min(0, baseOffset + pctOffset));
+            pageTrack.style.transform = 'translateX(' + newVal + '%)';
+        }, { passive: true });
+
+        pageWrapper.addEventListener('touchend', function(e) {
+            if (!pageSwipeActive || e.target === textArea) return;
+            pageSwipeActive = false;
+            var dx = e.changedTouches[0].clientX - pageSwipeStartX;
+            var threshold = pageWrapper.clientWidth * 0.25;
+
+            if (Math.abs(dx) > threshold) {
+                var targetPage = dx < 0 ? 1 : 0;
+                if (targetPage === 1 && currentPage === 0) {
+                    generateAndStreamCode();
+                } else if (targetPage === 0 && currentPage === 1) {
+                    restoreFromCode();
+                } else {
+                    setPage(targetPage);
+                }
+            } else {
+                setPage(currentPage);
+            }
+        });
+
+        // 防止页面滚动
+        document.addEventListener('touchmove', function(e) {
+            if (e.target === textArea) return;
+            e.preventDefault();
+        }, { passive: false });
+
+        // 初始化
+        setPage(0, false);
+
+    })();
     </script>
 </body>
 </html>
