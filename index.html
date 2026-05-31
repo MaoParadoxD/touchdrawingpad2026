@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>手绘板 - 初代iPhone风格</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部状态栏 - 初代iPhone风格 */
+        .header {
+            background: linear-gradient(to bottom, #4a4a4a, #2a2a2a);
+            color: #fff;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            flex-shrink: 0;
+        }
+
+        /* 手绘区域 */
+        .canvas-container {
+            flex: 1;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background: #000;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        /* 底部按钮区域 */
+        .button-container {
+            background: linear-gradient(to bottom, #3a3a3a, #1a1a1a);
+            padding: 16px 20px;
+            border-top: 2px solid #000;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        /* 初代iPhone立体按钮 */
+        .iphone-button {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #fff;
+            background: linear-gradient(to bottom, #5a5a5a, #3a3a3a);
+            border: 2px solid #000;
+            border-radius: 12px;
+            box-shadow:
+                0 4px 8px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.2),
+                inset 0 -1px 0 rgba(0,0,0,0.4);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            cursor: pointer;
+            transition: all 0.1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .iphone-button:active {
+            background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+            box-shadow:
+                0 2px 4px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.1),
+                inset 0 -1px 0 rgba(0,0,0,0.6);
+            transform: translateY(2px);
+        }
+
+        .iphone-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
+            border-radius: 10px 10px 0 0;
+            pointer-events: none;
+        }
+
+        /* 文本显示区域 */
+        .text-display {
+            display: none;
+            flex: 1;
+            background: #000;
+            color: #fff;
+            font-family: "Courier New", monospace;
+            font-size: 10px;
+            line-height: 1.2;
+            padding: 10px;
+            overflow: auto;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        /* 滚动条样式 */
+        .text-display::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .text-display::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .text-display::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 3px;
+        }
+
+        /* 模式指示器 */
+        .mode-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            border: 2px solid #4a4a4a;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+        }
+
+        .mode-indicator.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span id="statusText">手绘模式</span>
+    </div>
+
+    <div class="canvas-container" id="canvasContainer">
+        <canvas id="drawingCanvas"></canvas>
+        <div class="mode-indicator" id="modeIndicator">转换中...</div>
+    </div>
+
+    <div class="text-display" id="textDisplay"></div>
+
+    <div class="button-container">
+        <button class="iphone-button" id="toggleButton">转换为文本</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const toggleButton = document.getElementById('toggleButton');
+        const textDisplay = document.getElementById('textDisplay');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const modeIndicator = document.getElementById('modeIndicator');
+        const statusText = document.getElementById('statusText');
+
+        let isDrawing = false;
+        let isTextMode = false;
+        let lastX = 0;
+        let lastY = 0;
+        let base64Data = '';
+
+        // 初始化Canvas
+        function resizeCanvas() {
+            const container = canvasContainer;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            // 设置绘制属性
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 绘制功能
+        function startDrawing(e) {
+            if (isTextMode) return;
+            isDrawing = true;
+            const pos = getPosition(e);
+            lastX = pos.x;
+            lastY = pos.y;
+            e.preventDefault();
+        }
+
+        function draw(e) {
+            if (!isDrawing || isTextMode) return;
+            const pos = getPosition(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x;
+            lastY = pos.y;
+            e.preventDefault();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function getPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            return {
+                x: (touch.clientX || touch.pageX) - rect.left,
+                y: (touch.clientY || touch.pageY) - rect.top
+            };
+        }
+
+        // 鼠标事件
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        // 触摸事件
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        // 切换模式
+        toggleButton.addEventListener('click', function() {
+            if (!isTextMode) {
+                // 切换到文本模式
+                showIndicator('正在转换...');
+                setTimeout(() => {
+                    base64Data = canvas.toDataURL('image/png');
+                    canvasContainer.style.display = 'none';
+                    textDisplay.style.display = 'block';
+                    textDisplay.textContent = base64Data;
+                    isTextMode = true;
+                    toggleButton.textContent = '返回手绘';
+                    statusText.textContent = '文本模式';
+                    hideIndicator();
+                }, 300);
+            } else {
+                // 切换回手绘模式
+                showIndicator('正在恢复...');
+                setTimeout(() => {
+                    canvasContainer.style.display = 'block';
+                    textDisplay.style.display = 'none';
+                    isTextMode = false;
+                    toggleButton.textContent = '转换为文本';
+                    statusText.textContent = '手绘模式';
+                    hideIndicator();
+                }, 300);
+            }
+        });
+
+        // 指示器动画
+        function showIndicator(text) {
+            modeIndicator.textContent = text;
+            modeIndicator.classList.add('show');
+        }
+
+        function hideIndicator() {
+            modeIndicator.classList.remove('show');
+        }
+
+        // 防止页面滚动
+        document.addEventListener('touchmove', function(e) {
+            if (isTextMode) return;
+            e.preventDefault();
+        }, { passive: false });
+
+        // 清除画布功能（双击清除）
+        let tapCount = 0;
+        let tapTimer = null;
+
+        canvas.addEventListener('touchend', function() {
+            tapCount++;
+            if (tapCount === 1) {
+                tapTimer = setTimeout(() => {
+                    tapCount = 0;
+                }, 300);
+            } else if (tapCount === 2) {
+                clearTimeout(tapTimer);
+                tapCount = 0;
+                if (!isTextMode) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
